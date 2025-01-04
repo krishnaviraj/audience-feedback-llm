@@ -1,4 +1,3 @@
-// Updated page props for Next.js app router
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import QuestionDashboard from '@/components/QuestionDashboard/QuestionDashboard';
@@ -8,12 +7,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Use Next.js app router page props type
-export default async function DashboardPage({
-  params,
-}: {
-  params: { questionId: string };
-}) {
+interface PageProps {
+  params: { questionId: string }
+}
+
+const DashboardPage = async ({ params }: PageProps) => {
   // Fetch the question data
   const { data: question, error } = await supabase
     .from('questions')
@@ -32,3 +30,5 @@ export default async function DashboardPage({
     />
   );
 }
+
+export default DashboardPage;
