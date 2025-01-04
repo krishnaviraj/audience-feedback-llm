@@ -7,11 +7,10 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-interface Props {
-  params: {
-    questionId: string;
-  };
-}
+type Props = {
+  params: { questionId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
 
 export default async function DashboardPage({ params }: Props) {
   // Fetch the question data
