@@ -1,3 +1,4 @@
+// Updated page props for Next.js app router
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import QuestionDashboard from '@/components/QuestionDashboard/QuestionDashboard';
