@@ -1,0 +1,73 @@
+/* QuestionInput.module.css */
+.container {
+  min-height: 100vh;
+  background-color: rgb(2, 6, 23);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.card {
+  width: 100%;
+  max-width: 36rem;
+  background-color: rgb(2, 6, 23);
+  border-color: rgb(30, 41, 59);
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.125rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  color: black;
+}
+
+.inputError {
+  border-color: rgb(239, 68, 68);
+}
+
+.errorText {
+  color: rgb(239, 68, 68);
+  font-size: 0.875rem;
+}
+
+.button {
+  width: 100%;
+  background-color: rgb(37, 99, 235);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+}
+
+.button:hover {
+  background-color: rgb(29, 78, 216);
+}
+
+.button:disabled {
+  opacity: 0.5;
+}
