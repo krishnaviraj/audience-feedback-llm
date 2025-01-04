@@ -7,16 +7,18 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-interface PageProps {
-  params: { questionId: string }
-}
+export default async function DashboardPage({
+  params,
+}: {
+  params: { [key: string]: string | string[] }
+}) {
+  const questionId = typeof params.questionId === 'string' ? params.questionId : params.questionId[0];
 
-const DashboardPage = async ({ params }: PageProps) => {
   // Fetch the question data
   const { data: question, error } = await supabase
     .from('questions')
     .select('*')
-    .eq('id', params.questionId)
+    .eq('id', questionId)
     .single();
 
   if (error || !question) {
@@ -30,5 +32,3 @@ const DashboardPage = async ({ params }: PageProps) => {
     />
   );
 }
-
-export default DashboardPage;
