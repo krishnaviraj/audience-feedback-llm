@@ -1,9 +1,12 @@
-// App Router Types
-export type PageProps<Params = {}> = {
-    params: Params;
-    searchParams?: { [key: string]: string | string[] | undefined };
-  };
-  
-  export type DashboardPageProps = PageProps<{
-    questionId: string;
-  }>;
+import { Metadata } from 'next';
+
+export interface GenerateMetadataProps {
+  params: { questionId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export interface PageParams {
+  questionId: string;
+}
+
+export type GenerateMetadata = (props: GenerateMetadataProps) => Promise<Metadata>;
