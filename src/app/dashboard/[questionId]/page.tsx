@@ -7,12 +7,12 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Props = {
+// Use Next.js app router page props type
+export default async function DashboardPage({
+  params,
+}: {
   params: { questionId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-};
-
-export default async function DashboardPage({ params }: Props) {
+}) {
   // Fetch the question data
   const { data: question, error } = await supabase
     .from('questions')
