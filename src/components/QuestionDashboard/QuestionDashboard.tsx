@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { createClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { RefreshCw } from 'lucide-react';
 import ErrorBoundary from '../ErrorBoundary';
 import styles from './QuestionDashboard.module.css';
@@ -21,18 +21,23 @@ type Response = {
   question_id: string;
 };
 
+type StructuredSummary = {
+  mainMessage: {
+    text: string;
+    quotes: string[];
+  };
+  notablePerspectives: Array<{
+    insight: string;
+    quote: string;
+  }>;
+  keyTakeaways: string[];
+};
+
 type QuestionDashboardProps = {
   questionId: string;
   question: string;
   onEdit?: () => void;
 };
-
-type ResponsePayload = RealtimePostgresChangesPayload<{
-  id: string;
-  response: string;
-  created_at: string;
-  question_id: string;
-}>;
 
 export default function QuestionDashboard({ 
   questionId, 
@@ -41,11 +46,10 @@ export default function QuestionDashboard({
 }: QuestionDashboardProps) {
   const [responses, setResponses] = useState<Response[]>([]);
   const [audienceLink, setAudienceLink] = useState('');
-  const [summary, setSummary] = useState<string | null>(null);
+  const [summary, setSummary] = useState<StructuredSummary | null>(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [lastSummaryResponseCount, setLastSummaryResponseCount] = useState(0);
-
 
   // Function to generate summary
   const generateSummary = async (batchedResponses?: Response[]) => {
@@ -84,8 +88,6 @@ export default function QuestionDashboard({
   };
 
   useEffect(() => {
-    console.log('Setting up dashboard for question:', questionId);
-      
     setAudienceLink(`${window.location.origin}/respond/${questionId}`);
   
     const channel = supabase.channel(`responses-${questionId}`)
@@ -97,19 +99,13 @@ export default function QuestionDashboard({
           table: 'responses'
         },
         (payload: any) => {
-          console.log('Response received:', payload);
-          
           if (payload.new?.question_id === questionId) {
-            console.log('Matching response found, updating state');
             setResponses(current => [...current, payload.new]);
           }
         }
       )
       .subscribe(async (status) => {
-        console.log(`Subscription status for ${questionId}:`, status);
-        
         if (status === 'SUBSCRIBED') {
-          console.log('Fetching initial responses for:', questionId);
           const { data, error } = await supabase
             .from('responses')
             .select('*')
@@ -121,25 +117,21 @@ export default function QuestionDashboard({
             return;
           }
   
-          console.log('Fetched responses:', data);
           setResponses(data || []);
         }
       });
   
     return () => {
-      console.log('Unsubscribing from:', questionId);
       channel.unsubscribe();
     };
   }, [questionId]);
 
-  // Effect to trigger summary generation when response count hits 3
   useEffect(() => {
     if (responses.length >= 3 && !summary) {
       generateSummary();
     }
   }, [responses.length]);
 
-  // Check if summary is outdated
   const isSummaryOutdated = responses.length > lastSummaryResponseCount;
 
   return (
@@ -189,95 +181,83 @@ export default function QuestionDashboard({
         {/* Right Panel */}
         <div className={styles.panel}>
           <ErrorBoundary>
-                    <Card className={styles.card}>
-            <CardHeader className={styles.header}>
-              <h2 className={styles.title}>Audience sentiment summary</h2>
-              {responses.length >= 3 && (
-                <Button 
-                  onClick={() => generateSummary()}
-                  disabled={isGeneratingSummary}
-                  variant="ghost"
-                  className={styles.refreshButton}
-                >
-                  <RefreshCw className={clsx(styles.spinner, {
-                    [styles.spinnerActive]: isGeneratingSummary
-                  })} />
-                  Refresh
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {responses.length < 3 ? (
-                <p className={styles.subText}>
-                  A summary will be generated once you have at least 3 responses.
-                </p>
-              ) : summaryError ? (
-                <div className={styles.errorText}>
-                  {summaryError}
-                </div>
-              ) : isGeneratingSummary ? (
-                <p className={styles.subText}>
-                  Generating summary...
-                </p>
-              ) : summary ? (
-                <div>
-                  <div className={styles.text}>
-                    {/* Key themes section */}
-                    <div className={styles.summarySection}>
-                      <div className={styles.summaryHeader}>Key themes and sentiments:</div>
-                      <div className={styles.summaryList}>
-                        {summary.split('\n')
-                          .filter(line => line.includes('Response') && !line.includes('Key themes'))
-                          .slice(0, 3)
-                          .map((line, i) => (
-                            <div key={i} className={styles.summaryItem}>{line.replace(/^-\s*/, '')}</div>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Notable patterns section */}
-                    <div className={styles.summarySection}>
-                      <div className={styles.summaryHeader}>Notable patterns or unique perspectives:</div>
-                      <div className={styles.summaryList}>
-                        {summary.split('\n')
-                          .filter(line => line.includes('Response') && (line.includes('While') || line.includes('bland')))
-                          .map((line, i) => (
-                            <div key={i} className={styles.summaryItem}>{line.replace(/^-\s*/, '')}</div>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* General categorization section */}
-                    <div className={styles.summarySection}>
-                      <div className={styles.summaryHeader}>General categorization of responses:</div>
-                      <div className={styles.summaryList}>
-                        {summary.split('\n')
-                          .filter(line => line.includes('Response') && (line.includes('Neutral') || line.includes('sentiment')))
-                          .map((line, i) => (
-                            <div key={i} className={styles.summaryItem}>{line.replace(/^-\s*/, '')}</div>
-                          ))}
-                      </div>
-                    </div>
-
-                    {/* Conclusion */}
-                    <div className={styles.summaryConclusion}>
-                      {summary.split('\n')
-                        .find(line => line.includes('Overall'))}
-                    </div>
+            <Card className={styles.card}>
+              <CardHeader className={styles.header}>
+                <h2 className={styles.title}>Audience sentiment summary</h2>
+                {responses.length >= 3 && (
+                  <Button 
+                    onClick={() => generateSummary()}
+                    disabled={isGeneratingSummary}
+                    variant="ghost"
+                    className={styles.refreshButton}
+                  >
+                    <RefreshCw className={clsx(styles.spinner, {
+                      [styles.spinnerActive]: isGeneratingSummary
+                    })} />
+                    Refresh
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {responses.length < 3 ? (
+                  <p className={styles.subText}>
+                    A summary will be generated once you have at least 3 responses.
+                  </p>
+                ) : summaryError ? (
+                  <div className={styles.errorText}>
+                    {summaryError}
                   </div>
-                  {isSummaryOutdated && (
-                    <p className={styles.warningText}>
-                      New responses have been received. Click refresh to update the summary.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className={styles.subText}>
-                  Click refresh to generate a summary of the responses.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                ) : isGeneratingSummary ? (
+                  <p className={styles.subText}>
+                    Generating summary...
+                  </p>
+                ) : summary ? (
+                  <div>
+                    {/* Main Message */}
+                    <div className={styles.summarySection}>
+                      <div className={styles.summaryHeader}>The Main Message</div>
+                      <p className={styles.text}>{summary.mainMessage.text}</p>
+                      <div className={styles.summaryList}>
+                        {summary.mainMessage.quotes.map((quote, i) => (
+                          <div key={i} className={styles.quoteItem}>"{quote}"</div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Notable Perspectives */}
+                    <div className={styles.summarySection}>
+                      <div className={styles.summaryHeader}>Notable Perspectives</div>
+                      {summary.notablePerspectives.map((perspective, i) => (
+                        <div key={i} className={styles.perspectiveItem}>
+                          <p className={styles.text}>{perspective.insight}</p>
+                          <div className={styles.quoteItem}>"{perspective.quote}"</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Key Takeaways */}
+                    <div className={styles.summarySection}>
+                      <div className={styles.summaryHeader}>Key Takeaways</div>
+                      <ul className={styles.takeawaysList}>
+                        {summary.keyTakeaways.map((takeaway, i) => (
+                          <li key={i} className={styles.takeawayItem}>{takeaway}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {isSummaryOutdated && (
+                      <p className={styles.warningText}>
+                        New responses have been received. Click refresh to update the summary.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className={styles.subText}>
+                    Click refresh to generate a summary of the responses.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </ErrorBoundary>
           
           <ErrorBoundary>

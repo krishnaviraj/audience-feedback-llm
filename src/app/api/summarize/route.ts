@@ -1,69 +1,54 @@
-import { NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
-import { trackApiUsage } from '@/lib/rate-limit';
+import { NextResponse } from 'next/server'
+import { Anthropic } from '@anthropic-ai/sdk'
+import { trackApiUsage } from '@/lib/rate-limit'
 
-
-// Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+})
 
-// Type for the request body
 type SummarizeRequest = {
-  responses: string[];
-  question: string;
-  questionId: string;
-};
+  responses: string[]
+  question: string
+  questionId: string
+}
 
-export async function POST(request: Request) {
+interface StructuredSummary {
+  mainMessage: {
+    text: string
+    quotes: string[]
+  }
+  notablePerspectives: Array<{
+    insight: string
+    quote: string
+  }>
+  keyTakeaways: string[]
+}
+
+interface SummaryMetrics {
+  startTime: number
+  endTime: number
+  retryCount: number
+  responseQuality: number
+  tokens?: { input: number; output: number }
+}
+
+const MAX_RETRIES = 3
+const INITIAL_RETRY_DELAY = 1000
+
+async function generateSummary(
+  question: string,
+  responses: string[],
+  retryCount = 0
+): Promise<[StructuredSummary, SummaryMetrics]> {
+  const metrics: SummaryMetrics = {
+    startTime: Date.now(),
+    endTime: 0,
+    retryCount,
+    responseQuality: 0
+  }
+
   try {
-    console.log('Starting summarize API request');
-
-    if (request.method !== 'POST') {
-      return NextResponse.json(
-        { error: 'Method not allowed' },
-        { status: 405 }
-      );
-    }
-
-    const body: SummarizeRequest = await request.json();
-    console.log('Received request body:', {
-      questionLength: body.question?.length,
-      responsesCount: body.responses?.length,
-      questionId: body.questionId
-    });
-
-    const { responses, question, questionId } = body;
-
-    // Validate input
-    if (!Array.isArray(responses) || responses.length < 3) {
-      console.log('Validation failed: insufficient responses');
-      return NextResponse.json(
-        { error: 'At least 3 responses are required' },
-        { status: 400 }
-      );
-    }
-
-    if (!question) {
-      console.log('Validation failed: no question provided');
-      return NextResponse.json(
-        { error: 'Question is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!questionId) {
-      console.log('Validation failed: no questionId provided');
-      return NextResponse.json(
-        { error: 'Question ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Format responses for better context
-    const formattedResponses = responses.map((r, i) => `Response ${i + 1}: ${r}`).join('\n');
-
-    // Create the message for Claude
+    const formattedResponses = responses.map((r, i) => `Response ${i + 1}: ${r}`).join('\n')
     const message = await anthropic.messages.create({
       model: 'claude-3-sonnet-20240229',
       max_tokens: 1024,
@@ -74,50 +59,147 @@ export async function POST(request: Request) {
 Here are the responses:
 ${formattedResponses}
 
-Please provide:
-1. A concise summary of the key themes and sentiments expressed in these responses
-2. Any notable patterns or unique perspectives
-3. A general categorization of the responses if possible
+Analyze these responses and provide a structured summary in valid JSON format exactly as follows:
 
-Keep your analysis concise but insightful.`
+{
+  "mainMessage": {
+    "text": "A clear 1-2 sentence summary of the predominant sentiment",
+    "quotes": ["1-2 representative quotes that best capture this sentiment"]
+  },
+  "notablePerspectives": [
+    {
+      "insight": "A clear statement of a unique or contrasting viewpoint",
+      "quote": "The specific quote that expresses this perspective"
+    }
+  ],
+  "keyTakeaways": [
+    "Specific, actionable item based on the feedback",
+    "Another specific recommendation"
+  ]
+}
+
+Important:
+- Keep "mainMessage" focused on what most people are expressing
+- Include only truly unique or valuable perspectives in "notablePerspectives"
+- Make "keyTakeaways" specific and actionable
+- Use actual quotes from the responses
+- Response must be in valid JSON format with no additional text
+- Quote actual responses when providing quotes`
       }]
-    });
+    })
 
-    console.log('Successfully received Anthropic response');
-
-    // Track API usage
-    if (message.usage) {
-      await trackApiUsage(
-        questionId,
-        message.usage.input_tokens + message.usage.output_tokens
-      );
+    const summary = message.content[0].type === 'text' ? message.content[0].text : ''
+    
+    // Parse the JSON response
+    const structuredSummary: StructuredSummary = JSON.parse(summary)
+    
+    metrics.endTime = Date.now()
+    metrics.responseQuality = calculateResponseQuality(structuredSummary)
+    metrics.tokens = {
+      input: message.usage?.input_tokens ?? 0,
+      output: message.usage?.output_tokens ?? 0
     }
 
-    // Extract the content from the response
-    const content = message.content[0].type === 'text' ? message.content[0].text : '';
+    return [structuredSummary, metrics]
+  } catch (error) {
+    console.error('Summary generation error:', error)
+    
+    if (retryCount < MAX_RETRIES) {
+      const delay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount)
+      await new Promise(resolve => setTimeout(resolve, delay))
+      return generateSummary(question, responses, retryCount + 1)
+    }
+    throw error
+  }
+}
 
-    return NextResponse.json({
-      summary: content
-    });
+function calculateResponseQuality(summary: StructuredSummary): number {
+  const qualityMetrics = {
+    hasMainMessage: summary.mainMessage.text.length > 0 ? 1 : 0,
+    hasQuotes: summary.mainMessage.quotes.length > 0 ? 1 : 0,
+    hasNotablePerspectives: summary.notablePerspectives.length > 0 ? 1 : 0,
+    hasKeyTakeaways: summary.keyTakeaways.length > 0 ? 1 : 0
+  }
+  return Object.values(qualityMetrics).reduce((sum, val) => sum + val, 0) / 4
+}
+
+export async function POST(request: Request) {
+  try {
+    console.log('Starting summarize API request')
+
+    if (request.method !== 'POST') {
+      return NextResponse.json(
+        { error: 'Method not allowed' },
+        { status: 405 }
+      )
+    }
+
+    const body: SummarizeRequest = await request.json()
+    const { responses, question, questionId } = body
+
+    console.log('Received request:', {
+      questionLength: question?.length,
+      responsesCount: responses?.length,
+      questionId
+    })
+
+    if (!Array.isArray(responses) || responses.length < 3) {
+      console.log('Validation failed: insufficient responses')
+      return NextResponse.json(
+        { error: 'At least 3 responses are required' },
+        { status: 400 }
+      )
+    }
+
+    if (!question || !questionId) {
+      console.log('Validation failed: missing required fields')
+      return NextResponse.json(
+        { error: 'Question and questionId are required' },
+        { status: 400 }
+      )
+    }
+
+    const [summary, metrics] = await generateSummary(question, responses)
+
+    if (metrics.tokens) {
+      await trackApiUsage(questionId, metrics.tokens.input + metrics.tokens.output)
+    }
+
+    console.log('Summary generation metrics:', {
+      duration: metrics.endTime - metrics.startTime,
+      retryCount: metrics.retryCount,
+      responseQuality: metrics.responseQuality,
+      tokens: metrics.tokens,
+      timestamp: new Date().toISOString()
+    })
+
+    if (metrics.responseQuality < 0.5) {
+      console.warn('Low quality summary generated:', {
+        quality: metrics.responseQuality,
+        summary: JSON.stringify(summary, null, 2)
+      })
+    }
+
+    return NextResponse.json({ summary, metrics })
 
   } catch (error: any) {
-    console.error('Detailed error in summarize API:', {
-      error: error,
+    console.error('Error in summarize API:', {
+      error,
       message: error.message,
       stack: error.stack,
       anthropicError: error.error?.message
-    });
+    })
 
     if (error.status === 401) {
       return NextResponse.json(
         { error: 'Invalid API key' },
         { status: 401 }
-      );
+      )
     }
 
     return NextResponse.json(
       { error: `Failed to generate summary: ${error.message}` },
       { status: 500 }
-    );
+    )
   }
 }

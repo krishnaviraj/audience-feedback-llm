@@ -8,12 +8,18 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!
 })
 
-// Configure question limits (reduced)
+//Configure question limits (reduced)
 const QUESTION_LIMITS = {
   PER_MINUTE: 3,    // Maximum questions per minute
   PER_HOUR: 5,      // Maximum questions per hour
   PER_DAY: 10       // Maximum questions per day
 }
+
+// const QUESTION_LIMITS = {
+//   PER_MINUTE: 30,    // 10x increase
+//   PER_HOUR: 100,     // 20x increase
+//   PER_DAY: 200       // 20x increase
+// }
 
 // Configure response limits
 const RESPONSE_LIMITS = {
@@ -28,6 +34,19 @@ const RESPONSE_LIMITS = {
     PER_DAY: 1000    // Maximum responses per day per question
   }
 }
+
+// const RESPONSE_LIMITS = {
+//   PER_IP: {
+//     PER_MINUTE: 50,   // 10x increase
+//     PER_HOUR: 200,    // 10x increase
+//     PER_DAY: 500      // 10x increase
+//   },
+//   PER_QUESTION: {
+//     PER_MINUTE: 500,  // 5x increase
+//     PER_HOUR: 1500,   // 5x increase
+//     PER_DAY: 5000     // 5x increase
+//   }
+// }
 
 // Usage tracking function
 export async function trackApiUsage(questionId: string, tokensUsed: number) {
