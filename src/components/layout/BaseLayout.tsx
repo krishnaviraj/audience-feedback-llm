@@ -32,19 +32,19 @@ const BaseLayout = ({ children }: BaseLayoutProps) => {
           <span>© 2025</span>
           <span>•</span>
           <a 
-            href="https://yourportfolio.com" 
+            href="https://vkvdesign.com" 
             target="_blank" 
             rel="noopener noreferrer"
             className="hover:text-blue-600 transition-colors"
           >
-            Created by Your Name
+            Krishna V
           </a>
           <span>•</span>
           <a 
-            href="mailto:your@email.com"
+            href="mailto:krishnaviraj@email.com"
             className="hover:text-blue-600 transition-colors"
           >
-            Contact
+            Give feedback
           </a>
         </div>
       </footer>
