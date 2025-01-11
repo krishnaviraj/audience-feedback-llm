@@ -156,7 +156,7 @@ return (
         <div className="text-center space-y-12">
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-slate-900">
-              Get instant feedback from your audience
+              Get instant audience feedback
             </h1>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
               Ask a question, share the link, and get AI-powered insights from responses.
@@ -218,21 +218,21 @@ return (
               <MessageSquare className={clsx(styles.featureIcon, "text-green-500")} />
               <h3 className={styles.featureTitle}>Collect Responses</h3>
               <p className={styles.featureDescription}>
-                Gather feedback from your audience securely
+                Gather quick input for your question
               </p>
             </Card>
             <Card className={styles.featureCard}>
               <LineChart className={clsx(styles.featureIcon, "text-purple-500")} />
               <h3 className={styles.featureTitle}>AI Insights</h3>
               <p className={styles.featureDescription}>
-                Get automated summaries and analysis
+                Instant AI-powered summary & analysis
               </p>
             </Card>
             <Card className={styles.featureCard}>
               <LockKeyhole className={clsx(styles.featureIcon, "text-slate-500")} />
               <h3 className={styles.featureTitle}>End-to-End Encrypted</h3>
               <p className={styles.featureDescription}>
-                Your data stays private and secure
+                Your data stays private & secure
               </p>
             </Card>
           </div>
