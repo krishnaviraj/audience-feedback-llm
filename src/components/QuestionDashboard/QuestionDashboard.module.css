@@ -1,181 +1,86 @@
-/* Layout Styles */
+/* QuestionDashboard.module.css */
+
 .container {
-  min-height: 100vh;
-  background-color: rgb(2, 6, 23);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.grid {
-  width: 100%;
-  max-width: 72rem;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .grid {
-    grid-template-columns: 1fr 1fr;
-  }
+  @apply max-w-6xl mx-auto px-6;
 }
 
 .panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  @apply space-y-8;
 }
 
-/* Card Styles */
-.card {
-  background-color: rgb(2, 6, 23);
-  border-color: rgb(30, 41, 59);
-}
-
-.header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* Typography */
 .title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: white;
+  @apply text-2xl font-semibold text-slate-900;
 }
 
 .text {
-  color: white;
-  margin-bottom: 0.5rem;
+  @apply text-slate-600;
 }
 
 .subText {
-  font-size: 0.875rem;
-  color: rgb(148, 163, 184);
-}
-
-/* Button Styles */
-.linkText {
-  color: rgb(96, 165, 250);
-  padding: 0;
+  @apply text-sm text-slate-500;
 }
 
 .copyButton {
-  background-color: rgb(37, 99, 235);
-}
-
-.copyButton:hover {
-  background-color: rgb(29, 78, 216);
+  @apply px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full;
+  @apply font-medium text-sm transition-colors;
 }
 
 .refreshButton {
-  color: rgb(96, 165, 250);
+  @apply p-2 text-blue-600 hover:text-blue-700 transition-colors rounded-full;
+  @apply hover:bg-blue-50;
 }
 
-.refreshButton:hover {
-  color: rgb(147, 197, 253);
-}
-
-/* Spinner Animation */
 .spinner {
-  height: 1rem;
-  width: 1rem;
-  margin-right: 0.5rem;
+  @apply w-5 h-5 transition-transform;
 }
 
 .spinnerActive {
-  animation: spin 1s linear infinite;
+  @apply animate-spin;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Status Messages */
-.errorText {
-  color: rgb(248, 113, 113);
-}
-
-.warningText {
-  color: rgb(250, 204, 21);
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-}
-
-/* Summary Section Styles */
+/* Summary Styles */
 .summarySection {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid rgb(30, 41, 59);
-}
-
-.summarySection:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+  @apply pb-6 mb-6 border-b border-slate-200 last:border-0 last:mb-0 last:pb-0;
 }
 
 .summaryHeader {
-  font-weight: 600;
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-  color: white;
+  @apply font-semibold text-lg text-slate-900 mb-4;
 }
 
 .quoteItem {
-  margin: 0.5rem 0;
-  padding-left: 1rem;
-  border-left: 2px solid rgb(96, 165, 250);
-  color: rgb(148, 163, 184);
-  font-style: italic;
-}
-
-.perspectiveItem {
-  margin-bottom: 1rem;
-}
-
-.perspectiveItem:last-child {
-  margin-bottom: 0;
+  @apply my-3 pl-4 border-l-2 border-blue-500 text-slate-600 italic;
 }
 
 .takeawaysList {
-  list-style-type: none;
-  padding-left: 0;
-  margin: 0;
+  @apply space-y-2;
 }
 
 .takeawayItem {
-  position: relative;
-  padding-left: 1.5rem;
-  margin-bottom: 0.5rem;
-  color: white;
+  @apply relative pl-5 text-slate-900;
 }
 
 .takeawayItem::before {
+  @apply absolute left-0 text-blue-500;
   content: "•";
-  position: absolute;
-  left: 0.25rem;
-  color: rgb(96, 165, 250);
 }
 
-/* Response List Styles */
+/* Response List */
+.responseList {
+  @apply space-y-4;
+}
+
 .responseCard {
-  background-color: rgb(17, 24, 39);
-  border-color: rgb(55, 65, 81);
+  @apply p-4 bg-white shadow-sm hover:shadow-md transition-shadow;
 }
 
 .responseText {
-  color: white;
-  padding: 1rem;
+  @apply text-slate-600;
 }
 
-.responseList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.errorText {
+  @apply text-red-500 text-sm;
+}
+
+.warningText {
+  @apply text-amber-500 text-sm mt-2;
 }

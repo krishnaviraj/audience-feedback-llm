@@ -1,14 +1,16 @@
 'use client';
 
-import { useEncryption } from '@/hooks/useEncryption';
 import { useEffect, useState } from 'react';
+import BaseLayout from '@/components/layout/BaseLayout';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
+import { useEncryption } from '@/hooks/useEncryption';
 import { createClient } from '@supabase/supabase-js';
 import { RefreshCw } from 'lucide-react';
 import ErrorBoundary from '../ErrorBoundary';
 import styles from './QuestionDashboard.module.css';
 import clsx from 'clsx';
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -246,35 +248,28 @@ useEffect(() => {
   const isSummaryOutdated = responses.length > lastSummaryResponseCount;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.grid}>
-        {/* Left Panel */}
-        <div className={styles.panel}>
-          <ErrorBoundary>
-            <Card className={styles.card}>
-              <CardHeader>
-                <h2 className={styles.title}>Your question</h2>
-              </CardHeader>
-              <CardContent>
-              <p className={styles.text}>
-                  {isReady ? decryptedQuestion : 'Loading...'}
-                </p>
-                <Button
-                  onClick={onEdit}
-                  variant="link"
-                  className={styles.linkText}
-                >
-                  Edit
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className={styles.card}>
-              <CardHeader>
-                <h2 className={styles.title}>Audience link</h2>
-              </CardHeader>
-              <CardContent>
-                <div className={styles.content}>
+    <BaseLayout>
+      <div className={styles.container}>
+      <div className="grid md:grid-cols-2 gap-8 pt-12 pb-16">
+          {/* Left Panel */}
+          <div className={styles.panel}>
+            <ErrorBoundary>
+            <Card>
+                <CardHeader>
+                  <h2 className={styles.title}>Your question</h2>
+                </CardHeader>
+                <CardContent>
+                  <p className={styles.text}>
+                    {isReady ? decryptedQuestion : 'Loading...'}
+                  </p>
+                </CardContent>
+              </Card>
+  
+              <Card className="app-card">
+                <CardHeader>
+                  <h2 className={styles.title}>Audience link</h2>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <p className={styles.text}>{audienceLink}</p>
                   <Button
                     onClick={() => navigator.clipboard.writeText(audienceLink)}
@@ -285,123 +280,115 @@ useEffect(() => {
                   <p className={styles.subText}>
                     Share this with whoever you want answering your question
                   </p>
-                </div>
-              </CardContent>
-            </Card>
-          </ErrorBoundary>
-        </div>
+                </CardContent>
+              </Card>
+            </ErrorBoundary>
+          </div>
+  
+          {/* Right Panel */}
+          <div className={styles.panel}>
+            <ErrorBoundary>
+              <Card>
+                <CardHeader className="flex justify-between items-center">
+                  <h2 className={styles.title}>Audience sentiment summary</h2>
+                  {responses.length >= 3 && (
+                    <Button 
+                      onClick={() => generateSummary()}
+                      disabled={isGeneratingSummary}
+                      variant="ghost"
+                      className={styles.refreshButton}
+                    >
+                      <RefreshCw className={clsx(styles.spinner, {
+                        [styles.spinnerActive]: isGeneratingSummary
+                      })} />
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {/* Summary content - showing just one section as example */}
+                  {responses.length < 3 ? (
+                    <p className={styles.subText}>
+                      A summary will be generated once you have at least 3 responses.
+                    </p>
+                  ) : summaryError ? (
+                    <div className={styles.errorText}>
+                      {summaryError}
+                    </div>
+                  ) : isGeneratingSummary ? (
+                    <p className={styles.subText}>
+                      Generating summary...
+                    </p>
+                  ) : summary ? (
+                    <div>
+                      {/* Main Message */}
+                      <div className={styles.summarySection}>
+                        <div className={styles.summaryHeader}>The Main Message</div>
+                        <p className={styles.text}>{summary.mainMessage.text}</p>
+                        <div>
+                          {summary.mainMessage.quotes.map((quote, i) => (
+                            <div key={i} className={styles.quoteItem}>"{quote}"</div>
+                          ))}
+                        </div>
+                      </div>
 
-        {/* Right Panel */}
-        <div className={styles.panel}>
-          <ErrorBoundary>
-            <Card className={styles.card}>
-              <CardHeader className={styles.header}>
-                <h2 className={styles.title}>Audience sentiment summary</h2>
-                {responses.length >= 3 && (
-                  <Button 
-                    onClick={() => generateSummary()}
-                    disabled={isGeneratingSummary}
-                    variant="ghost"
-                    className={styles.refreshButton}
-                  >
-                    <RefreshCw className={clsx(styles.spinner, {
-                      [styles.spinnerActive]: isGeneratingSummary
-                    })} />
-                    Refresh
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {responses.length < 3 ? (
-                  <p className={styles.subText}>
-                    A summary will be generated once you have at least 3 responses.
-                  </p>
-                ) : summaryError ? (
-                  <div className={styles.errorText}>
-                    {summaryError}
-                  </div>
-                ) : isGeneratingSummary ? (
-                  <p className={styles.subText}>
-                    Generating summary...
-                  </p>
-                ) : summary ? (
-                  <div>
-                    {/* Main Message */}
-                    <div className={styles.summarySection}>
-                      <div className={styles.summaryHeader}>The Main Message</div>
-                      <p className={styles.text}>{summary.mainMessage.text}</p>
-                      <div className={styles.summaryList}>
-                        {summary.mainMessage.quotes.map((quote, i) => (
-                          <div key={i} className={styles.quoteItem}>"{quote}"</div>
+                      {/* Notable Perspectives */}
+                      <div className={styles.summarySection}>
+                        <div className={styles.summaryHeader}>Notable Perspectives</div>
+                        {summary.notablePerspectives.map((perspective, i) => (
+                          <div key={i} className="mb-4 last:mb-0">
+                            <p className={styles.text}>{perspective.insight}</p>
+                            <div className={styles.quoteItem}>"{perspective.quote}"</div>
+                          </div>
                         ))}
                       </div>
-                    </div>
 
-                    {/* Notable Perspectives */}
-                    <div className={styles.summarySection}>
-                      <div className={styles.summaryHeader}>Notable Perspectives</div>
-                      {summary.notablePerspectives.map((perspective, i) => (
-                        <div key={i} className={styles.perspectiveItem}>
-                          <p className={styles.text}>{perspective.insight}</p>
-                          <div className={styles.quoteItem}>"{perspective.quote}"</div>
-                        </div>
-                      ))}
-                    </div>
+                      {/* Key Takeaways */}
+                      <div className={styles.summarySection}>
+                        <div className={styles.summaryHeader}>Key Takeaways</div>
+                        <ul className={styles.takeawaysList}>
+                          {summary.keyTakeaways.map((takeaway, i) => (
+                            <li key={i} className={styles.takeawayItem}>{takeaway}</li>
+                          ))}
+                        </ul>
+                      </div>
 
-                    {/* Key Takeaways */}
-                    <div className={styles.summarySection}>
-                      <div className={styles.summaryHeader}>Key Takeaways</div>
-                      <ul className={styles.takeawaysList}>
-                        {summary.keyTakeaways.map((takeaway, i) => (
-                          <li key={i} className={styles.takeawayItem}>{takeaway}</li>
-                        ))}
-                      </ul>
+                      {isSummaryOutdated && (
+                        <p className={styles.warningText}>
+                          New responses have been received. Click refresh to update the summary.
+                        </p>
+                      )}
                     </div>
-
-                    {isSummaryOutdated && (
-                      <p className={styles.warningText}>
-                        New responses have been received. Click refresh to update the summary.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className={styles.subText}>
-                    Click refresh to generate a summary of the responses.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </ErrorBoundary>
-          
-          <ErrorBoundary>
-            <Card className={styles.card}>
-              <CardHeader>
-                <h2 className={styles.title}>
-                  Responses ({responses.length})
-                </h2>
-              </CardHeader>
-              <CardContent>
-                {responses.length === 0 ? (
-                  <p className={styles.subText}>None so far</p>
-                ) : (
+                  ) : (
+                    <p className={styles.subText}>
+                      Click refresh to generate a summary.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+  
+              <Card>
+                <CardHeader>
+                  <h2 className={styles.title}>
+                    Responses ({responses.length})
+                  </h2>
+                </CardHeader>
+                <CardContent>
                   <div className={styles.responseList}>
                     {responses.map((response) => (
                       <Card 
                         key={response.id} 
                         className={styles.responseCard}
                       >
-                        <CardContent>
-                          <p className={styles.responseText}>{response.response}</p>
-                        </CardContent>
+                        <p className={styles.responseText}>{response.response}</p>
                       </Card>
                     ))}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </ErrorBoundary>
+                </CardContent>
+              </Card>
+            </ErrorBoundary>
+          </div>
         </div>
       </div>
-    </div>
+    </BaseLayout>
   );
 }

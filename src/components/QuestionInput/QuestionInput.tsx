@@ -1,10 +1,12 @@
 'use client';
 
-import { useEncryption } from '@/hooks/useEncryption';
 import { useState, useEffect } from 'react';
+import BaseLayout from '@/components/layout/BaseLayout';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
+import { Share2, MessageSquare, LineChart, LockKeyhole } from 'lucide-react';
 import { Input } from '../ui/input';
+import { useEncryption } from '@/hooks/useEncryption';
 import { createClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
 import { useRouter } from 'next/navigation';
@@ -147,59 +149,96 @@ export default function QuestionInput() {
 };
 
 return (
-  <div className={styles.container}>
-    <Card className={styles.card}>
-      <CardHeader className={styles.header}>
-        <h1 className={styles.title}>
-          Pose your question
-        </h1>
-      </CardHeader>
-      
-      <CardContent>
-        <div className={styles.content}>
-          <div className={styles.inputWrapper}>
-            <Input
-              value={question}
-              onChange={(e) => {
-                setQuestion(e.target.value);
-                setSubmitError(null);
-                if (!isDirty) setIsDirty(true);
-              }}
-              placeholder="What's your question?"
-              className={clsx(styles.input, {
-                [styles.inputError]: validationError
-              })}
-              aria-label="Question input"
-              aria-invalid={!!validationError}
-              aria-describedby={validationError ? "question-error" : undefined}
-            />
-            {validationError && (
-              <div 
-                id="question-error"
-                className={styles.errorText}
-                role="alert"
-              >
-                {validationError}
-              </div>
-            )}
+  <BaseLayout>
+    <div className="max-w-6xl mx-auto px-6">
+      <div className="pt-12 pb-16 space-y-16">
+        {/* Header section */}
+        <div className="text-center space-y-12">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-bold text-slate-900">
+              Get instant feedback from your audience
+            </h1>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Ask a question, share the link, and get AI-powered insights from responses.
+            </p>
           </div>
-          
-          <Button
-            onClick={handleGenerateLink}
-            disabled={isGeneratingLink || !question.trim() || !!validationError}
-            className={styles.button}
-          >
-            {isGeneratingLink ? 'Generating...' : 'Generate audience link'}
-          </Button>
 
-          {submitError && (
-            <div className={styles.errorText} role="alert">
-              {submitError}
+          {/* Search section */}
+          <div className="max-w-2xl mx-auto space-y-4">
+            <div className="relative">
+              <input 
+                value={question}
+                onChange={(e) => {
+                  setQuestion(e.target.value);
+                  setSubmitError(null);
+                  if (!isDirty) setIsDirty(true);
+                }}
+                placeholder="What would you like to ask?"
+                className={clsx(
+                  styles.searchInput,
+                  validationError && styles.error
+                )}
+                aria-invalid={!!validationError}
+                aria-describedby={validationError ? "question-error" : undefined}
+              />
+              {validationError && (
+                <div 
+                  id="question-error"
+                  className="text-red-500 text-sm mt-2 px-4"
+                  role="alert"
+                >
+                  {validationError}
+                </div>
+              )}
             </div>
-          )}
+
+            <div className="flex justify-center">
+              <Button
+                onClick={handleGenerateLink}
+                disabled={isGeneratingLink || !question.trim() || !!validationError}
+                className={styles.generateButton}
+              >
+                {isGeneratingLink ? 'Generating...' : 'Generate audience link'}
+              </Button>
+            </div>
+          </div>
         </div>
-      </CardContent>
-    </Card>
-  </div>
+
+        {/* Feature cards */}
+        <div className="max-w-2xl mx-auto">
+          <div className="grid grid-cols-2 gap-4">
+            <Card className={styles.featureCard}>
+              <Share2 className={clsx(styles.featureIcon, "text-blue-500")} />
+              <h3 className={styles.featureTitle}>Share Easily</h3>
+              <p className={styles.featureDescription}>
+                Get a unique link to share with your audience
+              </p>
+            </Card>
+            <Card className={styles.featureCard}>
+              <MessageSquare className={clsx(styles.featureIcon, "text-green-500")} />
+              <h3 className={styles.featureTitle}>Collect Responses</h3>
+              <p className={styles.featureDescription}>
+                Gather feedback from your audience securely
+              </p>
+            </Card>
+            <Card className={styles.featureCard}>
+              <LineChart className={clsx(styles.featureIcon, "text-purple-500")} />
+              <h3 className={styles.featureTitle}>AI Insights</h3>
+              <p className={styles.featureDescription}>
+                Get automated summaries and analysis
+              </p>
+            </Card>
+            <Card className={styles.featureCard}>
+              <LockKeyhole className={clsx(styles.featureIcon, "text-slate-500")} />
+              <h3 className={styles.featureTitle}>End-to-End Encrypted</h3>
+              <p className={styles.featureDescription}>
+                Your data stays private and secure
+              </p>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  </BaseLayout>
 );
 }

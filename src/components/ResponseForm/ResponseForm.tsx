@@ -1,10 +1,11 @@
 'use client';
 
-import { useEncryption } from '@/hooks/useEncryption';
 import { useState, useEffect } from 'react';
+import BaseLayout from '@/components/layout/BaseLayout';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useEncryption } from '@/hooks/useEncryption';
 import { createClient } from '@supabase/supabase-js';
 import { 
   validateSpecialCharacters, 
@@ -205,98 +206,110 @@ export default function ResponseForm({ question }: { question: Question }) {
  // Early return for submitted state
  if (submitted) {
   return (
-    <div className={styles.container}>
-      <Card className={styles.card}>
-        <CardContent className={styles.content}>
-          <h2 className={styles.title}>Thank you for your response!</h2>
-          <Button
-            onClick={() => setSubmitted(false)}
-            className={styles.button}
-          >
-            Submit another response
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <BaseLayout>
+      <div className={styles.contentArea}>
+        <Card>
+          <CardContent className="py-8 space-y-4">
+            <h2 className={styles.successMessage}>Thank you for your response!</h2>
+            <div className="flex justify-center">
+              <Button
+                onClick={() => setSubmitted(false)}
+                className={styles.submitAnotherButton}
+              >
+                Submit another response
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </BaseLayout>
   );
 }
 
 // Check if question is valid
 if (!question?.id || !question?.question || question.status !== 'active' || decryptError) {
   return (
-    <div className={styles.container}>
-      <Card className={styles.card}>
-        <CardContent className={styles.content}>
-          <h2 className={styles.title}>
-            {decryptError || 'Invalid or Closed Question'}
-          </h2>
-          <p className={styles.text}>
-            {decryptError 
-              ? 'Please make sure you have the correct link with encryption key.'
-              : 'This question is no longer accepting responses.'}
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <BaseLayout>
+      <div className={styles.contentArea}>
+        <Card>
+          <CardContent className="py-8">
+            <h2 className={styles.questionTitle}>
+              {decryptError || 'Invalid or Closed Question'}
+            </h2>
+            <p className={styles.questionText}>
+              {decryptError 
+                ? 'Please make sure you have the correct link with encryption key.'
+                : 'This question is no longer accepting responses.'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </BaseLayout>
   );
 }
 
 return (
-  <div className={styles.container}>
-    <Card className={styles.card}>
-      <CardHeader className={styles.header}>
-        <h1 className={styles.title}>Question</h1>
-        <p className={styles.question}>
+  <BaseLayout>
+    <div className={styles.contentArea}>
+      <div className="pt-12 pb-16 space-y-8">
+        <Card>
+          <CardHeader>
+            <h2 className={styles.questionText}>
             {isReady ? decryptedQuestion : 'Loading...'}
-          </p>
-      </CardHeader>
-      
-      <CardContent>
-        <div className={styles.content}>
-          <div className={styles.inputWrapper}>
-            <Input
-              value={response}
-              onChange={(e) => {
-                setResponse(e.target.value);
-                setSubmitError(null);
-                if (!isDirty) setIsDirty(true);
-              }}
-              onBlur={() => setIsDirty(true)}
-              placeholder="Your response..."
-              className={clsx(styles.input, {
-                [styles.inputError]: validationError
-              })}
-              aria-label="Response input"
-              aria-invalid={!!validationError}
-              aria-describedby={validationError ? "response-error" : undefined}
-            />
-            {validationError && (
-              <div 
-                id="response-error"
-                className={styles.errorText}
-                role="alert"
-              >
-                {validationError}
-              </div>
-            )}
-          </div>
+            </h2>
+          </CardHeader>
           
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !response.trim() || !!validationError}
-            className={styles.button}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit response'}
-          </Button>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="relative">
+                <input
+                  value={response}
+                  onChange={(e) => {
+                    setResponse(e.target.value);
+                    setSubmitError(null);
+                    if (!isDirty) setIsDirty(true);
+                  }}
+                  onBlur={() => setIsDirty(true)}
+                  placeholder="Your response..."
+                  className={clsx(
+                    styles.responseInput,
+                    validationError && styles.error
+                  )}
+                  aria-label="Response input"
+                  aria-invalid={!!validationError}
+                  aria-describedby={validationError ? "response-error" : undefined}
+                />
+                {validationError && (
+                  <div 
+                    id="response-error"
+                    className={styles.errorText}
+                    role="alert"
+                  >
+                    {validationError}
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-center">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !response.trim() || !!validationError}
+                  className={styles.submitButton}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit response'}
+                </Button>
+              </div>
 
-          {submitError && (
-            <div className={styles.errorText} role="alert">
-              {submitError}
+              {submitError && (
+                <div className={styles.errorText} role="alert">
+                  {submitError}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </BaseLayout>
 );
 }

@@ -1,79 +1,41 @@
-/* ResponseForm.module.css */
-.container {
-    min-height: 100vh;
-    background-color: rgb(2, 6, 23);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-  }
-  
-  .card {
-    width: 100%;
-    max-width: 36rem;
-    background-color: rgb(2, 6, 23);
-    border-color: rgb(30, 41, 59);
-  }
-  
-  .header {
-    text-align: center;
-  }
-  
-  .title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: white;
-    margin-bottom: 0.5rem;
-  }
-  
-  .question {
-    font-size: 1.125rem;
-    color: white;
-  }
-  
-  .content {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-  
-  .inputWrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .input {
-    width: 100%;
-    padding: 1rem;
-    font-size: 1.125rem;
-    background-color: white;
-    border-radius: 0.5rem;
-    color: black;
-  }
-  
-  .inputError {
-    border-color: rgb(239, 68, 68);
-  }
-  
-  .errorText {
-    color: rgb(239, 68, 68);
-    font-size: 0.875rem;
-  }
-  
-  .button {
-    width: 100%;
-    background-color: rgb(37, 99, 235);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-  }
-  
-  .button:hover {
-    background-color: rgb(29, 78, 216);
-  }
-  
-  .button:disabled {
-    opacity: 0.5;
-  }
+.contentArea {
+  @apply max-w-2xl mx-auto px-6;
+}
+
+.questionTitle {
+  @apply text-4xl font-bold text-slate-900;
+}
+
+.questionText {
+  @apply text-lg font-bold text-slate-600 max-w-2xl mx-auto;
+}
+
+.responseInput {
+  @apply w-full px-6 py-4 text-lg text-slate-900 rounded-full bg-white border border-slate-200;
+  @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  @apply placeholder:text-slate-400;
+}
+
+.responseInput.error {
+  @apply border-red-500 focus:ring-red-500;
+}
+
+.submitButton {
+  @apply px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full;
+  @apply font-medium text-sm transition-colors;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.errorText {
+  @apply text-red-500 text-sm mt-2 px-4;
+}
+
+.successMessage {
+  @apply text-2xl font-semibold text-slate-900 text-center m-6;
+}
+
+.submitAnotherButton {
+  @apply mt-4 w-full sm:w-auto px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full;
+  @apply font-medium text-sm transition-colors;
+}

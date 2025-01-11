@@ -16,6 +16,10 @@ export default {
           foreground: "hsl(var(--destructive-foreground))",
         },
       },
+      fontFamily: {
+        sans: ['GeistSans', 'system-ui', 'sans-serif'],
+        mono: ['GeistMono', 'monospace'],
+      },
     },
   },
   plugins: [],
