@@ -1,5 +1,6 @@
 'use client';
 
+import { useEncryption } from '@/hooks/useEncryption';
 import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -14,9 +15,16 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type Response = {
+type EncryptedResponse = {
   id: string;
-  response: string;
+  response: string; // encrypted
+  created_at: string;
+  question_id: string;
+};
+
+type DecryptedResponse = {
+  id: string;
+  response: string; // decrypted
   created_at: string;
   question_id: string;
 };
@@ -41,18 +49,107 @@ type QuestionDashboardProps = {
 
 export default function QuestionDashboard({ 
   questionId, 
-  question,
+  question: encryptedQuestion,
   onEdit 
 }: QuestionDashboardProps) {
-  const [responses, setResponses] = useState<Response[]>([]);
+  const [responses, setResponses] = useState<DecryptedResponse[]>([]);
   const [audienceLink, setAudienceLink] = useState('');
   const [summary, setSummary] = useState<StructuredSummary | null>(null);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [lastSummaryResponseCount, setLastSummaryResponseCount] = useState(0);
+  // Get encryption key from URL fragment
+const fragment = typeof window !== 'undefined' 
+? window.location.hash.slice(1) 
+: '';
+
+const { decryptWithFragment, isReady, error: encryptionError } = useEncryption(fragment);
+
+const [decryptedQuestion, setDecryptedQuestion] = useState<string>('');
+const [decryptError, setDecryptError] = useState<string | null>(null);
+
+// Decrypt question on load
+useEffect(() => {
+  const decryptQuestion = async () => {
+    if (!isReady || !encryptedQuestion) return;
+    
+    try {
+      const decrypted = await decryptWithFragment(encryptedQuestion);
+      setDecryptedQuestion(decrypted);
+      setDecryptError(null);
+    } catch (err) {
+      console.error('Error decrypting question:', err);
+      setDecryptError('Unable to decrypt question. Invalid or missing key.');
+    }
+  };
+
+  decryptQuestion();
+}, [isReady, encryptedQuestion]);
+
+// Handle real-time updates with decryption
+useEffect(() => {
+  if (!isReady) return;
+
+  const channel = supabase.channel(`responses-${questionId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'responses'
+      },
+      async (payload: { new: EncryptedResponse }) => {
+        if (payload.new?.question_id === questionId) {
+          try {
+            // Decrypt new response
+            const decryptedResponse = await decryptWithFragment(payload.new.response);
+            setResponses(current => [...current, {
+              ...payload.new,
+              response: decryptedResponse
+            }]);
+          } catch (err) {
+            console.error('Error decrypting new response:', err);
+          }
+        }
+      }
+    )
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        // Fetch and decrypt initial responses
+        const { data, error } = await supabase
+          .from('responses')
+          .select('*')
+          .eq('question_id', questionId)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching responses:', error);
+          return;
+        }
+
+        // Decrypt all responses
+        try {
+          const decryptedResponses = await Promise.all(
+            data.map(async (response: EncryptedResponse) => ({
+              ...response,
+              response: await decryptWithFragment(response.response)
+            }))
+          );
+          setResponses(decryptedResponses);
+        } catch (err) {
+          console.error('Error decrypting responses:', err);
+          setDecryptError('Unable to decrypt responses. Invalid or missing key.');
+        }
+      }
+    });
+
+  return () => {
+    channel.unsubscribe();
+  };
+}, [questionId, isReady]);
 
   // Function to generate summary
-  const generateSummary = async (batchedResponses?: Response[]) => {
+  const generateSummary = async (batchedResponses?: DecryptedResponse[]) => {
     const responsesToProcess = batchedResponses || responses;
     if (responsesToProcess.length < 3 || isGeneratingSummary) return;
 
@@ -67,7 +164,7 @@ export default function QuestionDashboard({
         },
         body: JSON.stringify({
           responses: responsesToProcess.map(r => r.response),
-          question: question,
+          question: decryptedQuestion,
           questionId: questionId
         }),
       });
@@ -75,6 +172,20 @@ export default function QuestionDashboard({
       if (!result.ok) {
         throw new Error('Failed to generate summary');
       }
+
+      // Show decryption error if present
+  if (decryptError) {
+    return (
+      <div className={styles.container}>
+        <Card className={styles.card}>
+          <CardContent className={styles.content}>
+            <h2 className={styles.title}>Unable to Load Dashboard</h2>
+            <p className={styles.text}>{decryptError}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
       const data = await result.json();
       setSummary(data.summary);
@@ -88,7 +199,7 @@ export default function QuestionDashboard({
   };
 
   useEffect(() => {
-    setAudienceLink(`${window.location.origin}/respond/${questionId}`);
+    setAudienceLink(`${window.location.origin}/respond/${questionId}${window.location.hash}`);
   
     const channel = supabase.channel(`responses-${questionId}`)
       .on(
@@ -145,7 +256,9 @@ export default function QuestionDashboard({
                 <h2 className={styles.title}>Your question</h2>
               </CardHeader>
               <CardContent>
-                <p className={styles.text}>{question}</p>
+              <p className={styles.text}>
+                  {isReady ? decryptedQuestion : 'Loading...'}
+                </p>
                 <Button
                   onClick={onEdit}
                   variant="link"

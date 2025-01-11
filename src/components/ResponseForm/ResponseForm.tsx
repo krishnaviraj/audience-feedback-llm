@@ -1,5 +1,6 @@
 'use client';
 
+import { useEncryption } from '@/hooks/useEncryption';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,41 @@ export default function ResponseForm({ question }: { question: Question }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [lengthTimer, setLengthTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Get the key fragment from the URL
+  const fragment = typeof window !== 'undefined' 
+    ? window.location.hash.slice(1) 
+    : '';
+  
+  // Add encryption hook
+  const { 
+    decryptWithFragment, 
+    encryptWithFragment, 
+    isReady, 
+    error: encryptionError 
+  } = useEncryption(fragment);
+  
+  // Add state for decrypted question
+  const [decryptedQuestion, setDecryptedQuestion] = useState<string>('');
+  const [decryptError, setDecryptError] = useState<string | null>(null);
+
+  // Decrypt question on load
+  useEffect(() => {
+    const decryptQuestion = async () => {
+      if (!isReady || !question.question) return;
+      
+      try {
+        const decrypted = await decryptWithFragment(question.question);
+        setDecryptedQuestion(decrypted);
+        setDecryptError(null);
+      } catch (err) {
+        console.error('Error decrypting question:', err);
+        setDecryptError('Unable to decrypt question. Invalid or missing key.');
+      }
+    };
+
+    decryptQuestion();
+  }, [isReady, question.question]);
 
   // Function to check for immediate validation errors (HTML/special chars and max length)
   const checkImmediateValidation = (input: string) => {
@@ -105,7 +141,7 @@ export default function ResponseForm({ question }: { question: Question }) {
   }, [response, isDirty, validationError]);
 
   const handleSubmit = async () => {
-    if (validationError) return;
+    if (validationError || !isReady) return;
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -139,13 +175,17 @@ export default function ResponseForm({ question }: { question: Question }) {
         throw new Error('You have already submitted this response');
       }
 
+      // Sanitize and encrypt the response
+      const sanitizedResponse = sanitizeInput(response);
+      const encryptedResponse = await encryptWithFragment(sanitizedResponse);
+
       // Proceed with the submission
       const { error: submitError } = await supabase
         .from('responses')
         .insert([
           {
             question_id: question.id,
-            response: sanitizeInput(response),
+            response: encryptedResponse,
             created_at: new Date().toISOString(),
           }
         ]);
@@ -156,7 +196,7 @@ export default function ResponseForm({ question }: { question: Question }) {
       setResponse('');
       
     } catch (err) {
-      console.error('Full submission error:', err);
+      console.error('Submission error:', err);
       setSubmitError(err instanceof Error ? err.message : 'Failed to submit response. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -182,13 +222,19 @@ export default function ResponseForm({ question }: { question: Question }) {
 }
 
 // Check if question is valid
-if (!question?.id || !question?.question || question.status !== 'active') {
+if (!question?.id || !question?.question || question.status !== 'active' || decryptError) {
   return (
     <div className={styles.container}>
       <Card className={styles.card}>
         <CardContent className={styles.content}>
-          <h2 className={styles.title}>Invalid or Closed Question</h2>
-          <p className={styles.text}>This question is no longer accepting responses.</p>
+          <h2 className={styles.title}>
+            {decryptError || 'Invalid or Closed Question'}
+          </h2>
+          <p className={styles.text}>
+            {decryptError 
+              ? 'Please make sure you have the correct link with encryption key.'
+              : 'This question is no longer accepting responses.'}
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -200,7 +246,9 @@ return (
     <Card className={styles.card}>
       <CardHeader className={styles.header}>
         <h1 className={styles.title}>Question</h1>
-        <p className={styles.question}>{question.question}</p>
+        <p className={styles.question}>
+            {isReady ? decryptedQuestion : 'Loading...'}
+          </p>
       </CardHeader>
       
       <CardContent>

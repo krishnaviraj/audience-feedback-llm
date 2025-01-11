@@ -1,5 +1,6 @@
 'use client';
 
+import { useEncryption } from '@/hooks/useEncryption';
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -17,6 +18,7 @@ import styles from './QuestionInput.module.css';
 import clsx from 'clsx';
 import { checkForSpam } from '@/lib/spam-protection';
 
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -30,6 +32,8 @@ export default function QuestionInput() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [lengthTimer, setLengthTimer] = useState<NodeJS.Timeout | null>(null);
+  const { generateKeyAndEncrypt } = useEncryption();
+
 
   // Function to check for immediate validation errors (HTML/special chars and max length)
   const checkImmediateValidation = (input: string) => {
@@ -112,20 +116,27 @@ export default function QuestionInput() {
         throw new Error(`Question rejected: ${spamCheck.reason}`);
       }
 
+      // First sanitize the input
+      const sanitizedQuestion = sanitizeInput(question);
+
+       // Then encrypt the sanitized question
+       const { encryptedText, keyFragment } = await generateKeyAndEncrypt(sanitizedQuestion);
+
       const questionId = nanoid(10);
       const { error: insertError } = await supabase
         .from('questions')
         .insert([
           {
             id: questionId,
-            question: sanitizeInput(question),
+            question: encryptedText, // Store encrypted sanitized question
             created_at: new Date().toISOString(),
             status: 'active'
           }
         ]);
 
       if (insertError) throw insertError;
-      router.push(`/dashboard/${questionId}`);
+      // Add key fragment to dashboard URL
+      router.push(`/dashboard/${questionId}#${keyFragment}`);
       
     } catch (err) {
       console.error('Error:', err);
