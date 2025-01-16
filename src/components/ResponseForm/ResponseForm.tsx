@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import BaseLayout from '@/components/layout/BaseLayout';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ export default function ResponseForm({ question }: { question: Question }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [lengthTimer, setLengthTimer] = useState<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Get the key fragment from the URL
   const fragment = typeof window !== 'undefined' 
@@ -74,11 +75,13 @@ export default function ResponseForm({ question }: { question: Question }) {
 
   // Function to check for immediate validation errors (HTML/special chars and max length)
   const checkImmediateValidation = (input: string) => {
+    if (!isDirty) return null;
+    
     // Check for max length first
-    if (input.length > 2000) {
-      return 'Must not exceed 2000 characters';
+    if (input.length > 1000) {
+      return 'Must not exceed 1000 characters';
     }
-
+  
     const htmlValidation = validateHtmlContent(input);
     if (!htmlValidation.isValid) return htmlValidation.error;
     
@@ -140,6 +143,13 @@ export default function ResponseForm({ question }: { question: Question }) {
       }
     };
   }, [response, isDirty, validationError]);
+
+  useEffect(() => {
+    // Focus the input field when component mounts or when returning from submission
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []); // Empty dependency array means this runs once on mount
 
   const handleSubmit = async () => {
     if (validationError || !isReady) return;
@@ -213,7 +223,14 @@ export default function ResponseForm({ question }: { question: Question }) {
             <h2 className={styles.successMessage}>Thank you for your response!</h2>
             <div className="flex justify-center">
               <Button
-                onClick={() => setSubmitted(false)}
+                onClick={() => {
+                  setSubmitted(false);
+                  setResponse('');
+                  setIsDirty(false);
+                  setValidationError(null);
+                  // Force focus after a brief timeout to ensure component has updated
+                  setTimeout(() => inputRef.current?.focus(), 0);
+                }}
                 className={styles.submitAnotherButton}
               >
                 Submit another response
@@ -263,11 +280,17 @@ return (
             <div className="space-y-6">
               <div className="relative">
                 <input
+                  ref={inputRef}
                   value={response}
                   onChange={(e) => {
                     setResponse(e.target.value);
                     setSubmitError(null);
                     if (!isDirty) setIsDirty(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && response.trim() && !validationError && !isSubmitting) {
+                      handleSubmit();
+                    }
                   }}
                   onBlur={() => setIsDirty(true)}
                   placeholder="Your response..."

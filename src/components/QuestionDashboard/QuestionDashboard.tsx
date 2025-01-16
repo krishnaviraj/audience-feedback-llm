@@ -6,7 +6,7 @@ import { Card, CardHeader, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { useEncryption } from '@/hooks/useEncryption';
 import { createClient } from '@supabase/supabase-js';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Share2, MessageSquare, LineChart } from 'lucide-react';
 import ErrorBoundary from '../ErrorBoundary';
 import styles from './QuestionDashboard.module.css';
 import clsx from 'clsx';
@@ -60,13 +60,15 @@ export default function QuestionDashboard({
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [lastSummaryResponseCount, setLastSummaryResponseCount] = useState(0);
+  const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
+  const [currentPage, setCurrentPage] = useState(1);
+  
   // Get encryption key from URL fragment
 const fragment = typeof window !== 'undefined' 
 ? window.location.hash.slice(1) 
 : '';
 
 const { decryptWithFragment, isReady, error: encryptionError } = useEncryption(fragment);
-
 const [decryptedQuestion, setDecryptedQuestion] = useState<string>('');
 const [decryptError, setDecryptError] = useState<string | null>(null);
 
@@ -249,63 +251,81 @@ useEffect(() => {
 
   return (
     <BaseLayout>
-      <div className={styles.container}>
-      <div className="grid md:grid-cols-2 gap-8 pt-12 pb-16">
-          {/* Left Panel */}
-          <div className={styles.panel}>
-            <ErrorBoundary>
-            <Card>
-                <CardHeader>
-                  <h2 className={styles.title}>Your question</h2>
-                </CardHeader>
-                <CardContent>
-                  <p className={styles.text}>
-                    {isReady ? decryptedQuestion : 'Loading...'}
-                  </p>
-                </CardContent>
-              </Card>
-  
-              <Card className="app-card">
-                <CardHeader>
-                  <h2 className={styles.title}>Audience link</h2>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className={styles.text}>{audienceLink}</p>
-                  <Button
-                    onClick={() => navigator.clipboard.writeText(audienceLink)}
-                    className={styles.copyButton}
-                  >
-                    Copy Link
-                  </Button>
-                  <p className={styles.subText}>
-                    Share this with whoever you want answering your question
-                  </p>
-                </CardContent>
-              </Card>
-            </ErrorBoundary>
+  <div className={styles.container}>
+    <div className="relative">
+      <div className="flex flex-col md:flex-row gap-8 pt-12 pb-16 w-full">
+        {/* Left Panel */}
+        <div className="md:w-[40%] md:h-[calc(100vh-6rem)]">
+          <div className="md:sticky md:top-8">
+            <div className={styles.panel}>
+              <ErrorBoundary>
+                <Card>
+                  <CardHeader>
+                    <Share2 className="w-5 h-5 text-blue-500" />
+                    <div className="flex-grow">
+                      <h2 className={styles.title}>Your question</h2>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Question section */}
+                    <div>
+                      <p className={styles.text}>
+                        {isReady ? decryptedQuestion : 'Loading...'}
+                      </p>
+                    </div>
+
+                    {/* Link section */}
+                    <div className="space-y-4 border-t border-slate-100 pt-6">
+                      <h3 className="text-sm font-semibold text-slate-700">Audience link</h3>
+                      <p className={styles.text + " break-all"}>{audienceLink}</p>
+                      <Button
+                        onClick={() => {
+                          navigator.clipboard.writeText(audienceLink);
+                          setCopyState('copied');
+                          setTimeout(() => setCopyState('idle'), 2000);
+                        }}
+                        disabled={copyState === 'copied'}
+                        className={styles.copyButton}
+                      >
+                        {copyState === 'copied' ? 'Copied!' : 'Copy Link'}
+                      </Button>
+                      <p className={styles.subText}>
+                        Share this with whoever you want answering your question. 
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </ErrorBoundary>
+            </div>
           </div>
-  
-          {/* Right Panel */}
+        </div>
+
+        {/* Right Panel */}
+        <div className="md:w-[60%]">
           <div className={styles.panel}>
             <ErrorBoundary>
-              <Card>
-                <CardHeader className="flex justify-between items-center">
-                  <h2 className={styles.title}>Audience sentiment summary</h2>
-                  {responses.length >= 3 && (
-                    <Button 
+              {/* Summary Card */}
+              <Card className="overflow-hidden">
+              {isSummaryOutdated && summary && !isGeneratingSummary && (
+                  <div className={styles.notificationBanner}>
+                    <span>{responses.length - lastSummaryResponseCount} new {responses.length - lastSummaryResponseCount === 1 ? 'response has' : 'responses have'} been received.</span>
+                    <button
                       onClick={() => generateSummary()}
                       disabled={isGeneratingSummary}
-                      variant="ghost"
-                      className={styles.refreshButton}
+                      className={styles.refreshLink}
                     >
-                      <RefreshCw className={clsx(styles.spinner, {
-                        [styles.spinnerActive]: isGeneratingSummary
-                      })} />
-                    </Button>
-                  )}
+                      Refresh to update your summary
+                    </button>
+                  </div>
+                )}
+                <CardHeader>
+                  <LineChart className="w-5 h-5 text-purple-500" />
+                  <div className="flex-grow">
+                    <h2 className={styles.title}>Audience sentiment summary</h2>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  {/* Summary content - showing just one section as example */}
+                  {/* Summary content */}
                   {responses.length < 3 ? (
                     <p className={styles.subText}>
                       A summary will be generated once you have at least 3 responses.
@@ -351,12 +371,6 @@ useEffect(() => {
                           ))}
                         </ul>
                       </div>
-
-                      {isSummaryOutdated && (
-                        <p className={styles.warningText}>
-                          New responses have been received. Click refresh to update the summary.
-                        </p>
-                      )}
                     </div>
                   ) : (
                     <p className={styles.subText}>
@@ -365,30 +379,62 @@ useEffect(() => {
                   )}
                 </CardContent>
               </Card>
-  
+
               <Card>
                 <CardHeader>
-                  <h2 className={styles.title}>
-                    Responses ({responses.length})
-                  </h2>
+                  <MessageSquare className="w-5 h-5 text-green-500" />
+                  <div className="flex-grow">
+                    <h2 className={styles.title}>
+                      Responses ({responses.length})
+                    </h2>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className={styles.responseList}>
-                    {responses.map((response) => (
-                      <Card 
-                        key={response.id} 
-                        className={styles.responseCard}
-                      >
-                        <p className={styles.responseText}>{response.response}</p>
-                      </Card>
+                    {responses
+                      .slice((currentPage - 1) * 10, currentPage * 10)
+                      .map((response) => (
+                        <Card 
+                          key={response.id} 
+                          className={styles.responseCard}
+                        >
+                          <p className={styles.responseText}>{response.response}</p>
+                        </Card>
                     ))}
                   </div>
+                  
+                  {/* Pagination Controls */}
+                  {responses.length > 10 && (
+                    <div className={styles.pagination}>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className={styles.paginationButton}
+                      >
+                        Previous
+                      </Button>
+                      <span className={styles.paginationText}>
+                        Page {currentPage} of {Math.ceil(responses.length / 10)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(responses.length / 10), p + 1))}
+                        disabled={currentPage === Math.ceil(responses.length / 10)}
+                        className={styles.paginationButton}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </ErrorBoundary>
           </div>
         </div>
       </div>
-    </BaseLayout>
+    </div>
+  </div>
+</BaseLayout>
   );
 }

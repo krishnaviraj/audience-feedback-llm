@@ -1,7 +1,7 @@
 /* QuestionDashboard.module.css */
 
 .container {
-  @apply max-w-6xl mx-auto px-6;
+  @apply max-w-7xl mx-auto px-8 overflow-hidden;
 }
 
 .panel {
@@ -38,6 +38,19 @@
   @apply animate-spin;
 }
 
+/* Notification banner */
+.notificationBanner {
+  @apply px-6 py-3 bg-blue-50 border-b border-blue-100;
+  @apply flex items-center gap-1;
+  @apply text-sm text-blue-700;
+  @apply rounded-t-lg;
+}
+
+.refreshLink {
+  @apply text-blue-600 hover:text-blue-700 font-medium underline;
+  @apply transition-colors cursor-pointer;
+}
+
 /* Summary Styles */
 .summarySection {
   @apply pb-6 mb-6 border-b border-slate-200 last:border-0 last:mb-0 last:pb-0;
@@ -56,7 +69,7 @@
 }
 
 .takeawayItem {
-  @apply relative pl-5 text-slate-900;
+  @apply relative pl-5 text-slate-600;
 }
 
 .takeawayItem::before {
@@ -67,6 +80,19 @@
 /* Response List */
 .responseList {
   @apply space-y-4;
+}
+
+/* Pagination */
+.pagination {
+  @apply flex items-center justify-center gap-4 mt-6 pt-6;
+}
+
+.paginationButton {
+  @apply text-sm text-slate-600 hover:text-slate-900 disabled:text-slate-400;
+}
+
+.paginationText {
+  @apply text-sm text-slate-600 min-w-[120px] text-center;
 }
 
 .responseCard {

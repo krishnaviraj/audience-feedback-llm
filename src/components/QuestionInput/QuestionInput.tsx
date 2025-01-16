@@ -20,7 +20,6 @@ import styles from './QuestionInput.module.css';
 import clsx from 'clsx';
 import { checkForSpam } from '@/lib/spam-protection';
 
-
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -35,7 +34,17 @@ export default function QuestionInput() {
   const [isDirty, setIsDirty] = useState(false);
   const [lengthTimer, setLengthTimer] = useState<NodeJS.Timeout | null>(null);
   const { generateKeyAndEncrypt } = useEncryption();
-
+  const [displayedPlaceholder, setDisplayedPlaceholder] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const exampleQuestions = [
+    "What'd you think of the keynote?",
+    "What should we cover in our next all-hands?",
+    "What challenges are you facing with our product?",
+    "What's the most important feature we should build next?",
+    "What do you think about our new design?"
+  ];
+  const [isFocused, setIsFocused] = useState(false);
 
   // Function to check for immediate validation errors (HTML/special chars and max length)
   const checkImmediateValidation = (input: string) => {
@@ -148,6 +157,43 @@ export default function QuestionInput() {
     }
 };
 
+//cycle through sample questions
+useEffect(() => {
+  if (question || isFocused) return; // Don't animate if user has typed or input is focused
+
+  let timeout: NodeJS.Timeout;
+
+  // Typing effect
+  const currentQuestion = exampleQuestions[placeholderIndex];
+  
+  if (isDeleting) {
+    if (displayedPlaceholder === '') {
+      setIsDeleting(false);
+      setPlaceholderIndex((current) => 
+        current === exampleQuestions.length - 1 ? 0 : current + 1
+      );
+      return;
+    }
+
+    timeout = setTimeout(() => {
+      setDisplayedPlaceholder(current => current.slice(0, -1));
+    }, 10); // Backspace speed
+  } else {
+    if (displayedPlaceholder === currentQuestion) {
+      timeout = setTimeout(() => {
+        setIsDeleting(true);
+      }, 1500); // How long to pause at complete question
+      return;
+    }
+
+    timeout = setTimeout(() => {
+      setDisplayedPlaceholder(currentQuestion.slice(0, displayedPlaceholder.length + 1));
+    }, 15); // Typing speed
+  }
+
+  return () => clearTimeout(timeout);
+}, [displayedPlaceholder, isDeleting, placeholderIndex, question]);
+
 return (
   <BaseLayout>
     <div className="max-w-6xl mx-auto px-6">
@@ -163,17 +209,25 @@ return (
             </p>
           </div>
 
-          {/* Search section */}
+          {/* Question section */}
           <div className="max-w-2xl mx-auto space-y-4">
             <div className="relative">
-              <input 
+            <input 
                 value={question}
                 onChange={(e) => {
                   setQuestion(e.target.value);
                   setSubmitError(null);
                   if (!isDirty) setIsDirty(true);
                 }}
-                placeholder="What would you like to ask?"
+                onFocus={() => {
+                  setIsFocused(true);
+                  setDisplayedPlaceholder(''); // Clear the placeholder when focused
+                }}
+                onBlur={() => {
+                  setIsFocused(false);
+                  setDisplayedPlaceholder(''); // Reset to empty so typing effect can start again
+                }}
+                placeholder={isFocused ? '' : displayedPlaceholder} // Show empty placeholder when focused
                 className={clsx(
                   styles.searchInput,
                   validationError && styles.error
@@ -230,9 +284,9 @@ return (
             </Card>
             <Card className={styles.featureCard}>
               <LockKeyhole className={clsx(styles.featureIcon, "text-slate-500")} />
-              <h3 className={styles.featureTitle}>End-to-End Encrypted</h3>
+              <h3 className={styles.featureTitle}>Built-in Encryption</h3>
               <p className={styles.featureDescription}>
-                Your data stays private & secure
+                Only you can read responses
               </p>
             </Card>
           </div>

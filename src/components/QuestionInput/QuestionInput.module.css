@@ -32,3 +32,12 @@
 .featureDescription {
   @apply text-sm text-slate-600;
 }
+
+.searchInput::placeholder {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  from, to { border-right: 2px solid transparent; }
+  50% { border-right: 2px solid currentColor; }
+}
